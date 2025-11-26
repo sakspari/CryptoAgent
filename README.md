@@ -19,72 +19,112 @@
 
 ---
 
-## 🏗️ Architecture
+## 🔄 Agent Pipeline
 
-The system consists of three main agents orchestrated by a central pipeline:
+The system operates on a scheduled pipeline orchestrated by `main.py`:
 
-1.  **News Agent**: Scours the web for the latest sentiment-driving news.
-2.  **Crypto Agent**: Fetches market data, generates technical features, and runs the ML model to predict price direction.
-3.  **Telegram Agent**: Formats the insights and dispatches them to the user.
+![alt text](image.png)
+
+1.  **News Agent**: Scans RSS feeds (CoinDesk, Cointelegraph, etc.) to find the most significant market-moving news. It selects a target asset (Bullish or Bearish).
+2.  **Crypto Agent**: Dynamically downloads historical data for that asset, calculates technical features, calculates volatility-based thresholds, and trains a LightGBM model to predict the next day's return.
+3.  **Telegram Agent**: Formats the prediction, news context, and trade setup (Entry, SL, TP) into a readable message and sends it to your Telegram.
 
 ---
 
 ## 🛠️ Prerequisites
 
 *   **Python 3.10+**
-*   **Docker** & **Docker Compose** (recommended for deployment)
+*   **Docker** & **Docker Compose** (Recommended)
 *   **API Keys**:
     *   `GOOGLE_API_KEY`: For the Agno agents (Gemini Flash).
     *   `TELEGRAM_TOKEN` & `TELEGRAM_CHAT_ID`: For receiving alerts.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Setup Guide
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/yourusername/crypto-agent.git
-cd crypto-agent
-```
+### Option A: Docker (Recommended)
 
-### 2. Configure Environment
-Copy the example environment file and add your credentials:
-```bash
-cp .env.example .env
-```
-Edit `.env` with your keys:
-```ini
-TELEGRAM_TOKEN=your_telegram_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-OPENAI_API_KEY=your_openai_api_key
-```
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/sakspari/CryptoAgent.git
+    cd CryptoAgent
+    ```
 
-### 3. Train the Model
-Before the first run, you need to train the prediction model.
-```bash
-# Local Python (using uv)
-uv pip install -r pyproject.toml
-python src/train_model.py
+2.  **Configure Environment**
+    ```bash
+    cp .env.example .env
+    ```
+    Edit `.env` and fill in your keys:
+    ```ini
+    GOOGLE_API_KEY=your_google_api_key
+    TELEGRAM_TOKEN=your_telegram_bot_token
+    TELEGRAM_CHAT_ID=your_chat_id
+    ```
 
-# Or via Docker
-docker-compose run crypto-agent python src/train_model.py
-```
+3.  **Run with Docker Compose**
+    This will build the image and start the scheduler (runs at 07:00 and 14:00).
+    ```bash
+    docker-compose up -d --build
+    ```
 
-### 4. Run the Agent
-The system is configured to run automatically at **07:00** and **14:00** (Asia/Jakarta time).
+4.  **Check Logs**
+    ```bash
+    docker-compose logs -f
+    ```
 
-```bash
-# Run the scheduler
-python src/scheduler.py
+### Option B: Local Development
 
-# Or via Docker (runs scheduler by default)
-docker-compose up
-```
+1.  **Install Dependencies**
+    Using `uv` (recommended) or `pip`:
+    ```bash
+    pip install -r requirements.txt
+    # OR
+    uv pip install -r pyproject.toml
+    ```
 
-To run a one-off prediction immediately:
-```bash
-python src/main.py
-```
+2.  **Train Model (Initial)**
+    Although the system trains dynamically, you can verify the training pipeline:
+    ```bash
+    python src/train_model.py
+    ```
+
+3.  **Run Manually**
+    To trigger a one-off run immediately:
+    ```bash
+    python -m src.main
+    ```
+
+---
+
+## ☁️ Deployment Guide
+
+To deploy this on a VPS (e.g., DigitalOcean, AWS EC2, Hetzner):
+
+1.  **Provision a Server**: Ubuntu 22.04 LTS is recommended.
+2.  **Install Docker**:
+    ```bash
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    ```
+3.  **Deploy**:
+    ```bash
+    # On your local machine, copy files to server
+    scp -r crypto-agent user@your-server-ip:~/
+
+    # SSH into server
+    ssh user@your-server-ip
+    cd crypto-agent
+
+    # Setup Env
+    cp .env.example .env
+    nano .env # Add your keys
+
+    # Start
+    docker compose up -d --build
+    ```
+4.  **Maintenance**:
+    The container handles scheduling internally. If it crashes, Docker will restart it (ensure `restart: always` is in `docker-compose.yml`).
 
 ---
 
@@ -95,10 +135,10 @@ python src/main.py
 ├── artifacts/          # Trained models and feature metadata
 ├── data/               # Raw downloaded market data
 ├── src/
-│   ├── agents/         # Agno agent definitions (News, Crypto, Telegram)
+│   ├── agents/         # Agno agent definitions (News, Telegram)
 │   ├── utils/          # Data loading, feature engineering, model training
 │   ├── main.py         # Main orchestration script
-│   └── train_model.py  # Model training script
+│   └── train_model.py  # Model training logic
 ├── Dockerfile          # Docker image definition
 ├── docker-compose.yml  # Container orchestration
 └── requirements.txt    # Python dependencies

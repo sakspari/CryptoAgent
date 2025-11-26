@@ -1,4 +1,5 @@
 from agno.agent import Agent
+from agno.tools.reasoning import ReasoningTools
 from agno.models.google import Gemini
 from src.utils.data_loader import batch_download, ASSETS, PERIOD_FORECAST, DAILY_INTERVAL, WEEKLY_INTERVAL, INTRADAY_INTERVAL
 from src.utils.feature_engineering import build_features_from_price
@@ -157,12 +158,21 @@ def get_prediction(dummy: str = "") -> str:
     """
     return report
 
+import os
+
 # Create the Crypto Agent
 crypto_agent = Agent(
     name="Crypto Agent",
     role="Financial Analyst",
     instructions="You are a financial analyst. Use the prediction tool to find the best crypto asset to buy.",
-    tools=[get_prediction],
-    model=Gemini(id="gemini-flash-latest"),
+    tools=[get_prediction, ReasoningTools(
+            enable_think=True,
+            enable_analyze=True,
+            add_instructions=True,
+            add_few_shot=True,
+        )],
+    model=Gemini(id=os.getenv("GEMINI_MODEL_ID", "gemini-flash-latest")),
+    retries=int(os.getenv("AGENT_RETRIES", 3)),
+    delay_between_retries=int(os.getenv("RETRY_DELAY", 5)),
     markdown=True,
 )

@@ -98,7 +98,10 @@ def build_features_from_price(df_daily, df_weekly, df_intra=None, assets=None):
                 .to_frame()
             )
             i_df.index = pd.to_datetime(i_df.index)
+            # Join and fill missing values (for dates older than 60d) with the mean volatility
+            # This prevents dropna() from discarding 10 months of daily data
             feats = feats.join(i_df)
+            feats[f"{tkr}_i_vol_std"] = feats[f"{tkr}_i_vol_std"].fillna(feats[f"{tkr}_i_vol_std"].mean())
 
         features[tkr] = feats
 

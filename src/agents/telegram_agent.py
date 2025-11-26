@@ -22,8 +22,7 @@ def send_telegram_message(message: str) -> str:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "Markdown"
+        "text": message
     }
     
     try:
@@ -36,11 +35,14 @@ def send_telegram_message(message: str) -> str:
         return f"Error sending message: {e}"
 
 # Create the Telegram Agent
+# Create the Telegram Agent
 telegram_agent = Agent(
     name="Telegram Agent",
     role="Messenger",
     instructions="You are a messenger. Your only job is to send the provided message to Telegram using the tool.",
     tools=[send_telegram_message],
-    model=Gemini(id="gemini-flash-latest"),
+    model=Gemini(id=os.getenv("GEMINI_MODEL_ID", "gemini-flash-latest")),
+    retries=int(os.getenv("AGENT_RETRIES", 3)),
+    delay_between_retries=int(os.getenv("RETRY_DELAY", 5)),
     markdown=True,
 )

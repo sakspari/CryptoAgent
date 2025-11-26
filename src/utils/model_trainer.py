@@ -14,32 +14,51 @@ class ModelTrainer:
         self.model = None
         self.selected_features = [] # Should be loaded or defined
 
-    def train(self, X, y, selected_features, task="regression"):
-        """Train the LightGBM model."""
-        self.selected_features = selected_features
-        X_final = X[selected_features].fillna(0)
-        
-        if task == "regression":
-            self.model = lgb.LGBMRegressor(
-                random_state=self.random_seed, 
-                n_estimators=600, 
-                learning_rate=0.05, 
-                subsample=0.8, 
-                colsample_bytree=0.8
-            )
-        else:
-             self.model = lgb.LGBMClassifier(
-                random_state=self.random_seed, 
-                n_estimators=600, 
-                learning_rate=0.05, 
-                subsample=0.8, 
-                colsample_bytree=0.8,
-                class_weight="balanced"
-            )
+    def train(self, X, y, feature_names=None, task="regression", save_model=True):
+        """
+        Trains a LightGBM model.
+        """
+        if feature_names is None:
+            feature_names = X.columns.tolist()
             
-        self.model.fit(X_final, y)
-        print(f"Model trained. Saving to {self.model_path}")
-        self.save_model()
+        # Split data
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, shuffle=False)
+        
+        # Dataset
+        train_data = lgb.Dataset(X_train, label=y_train, feature_name=feature_names)
+        val_data = lgb.Dataset(X_val, label=y_val, feature_name=feature_names, reference=train_data)
+        
+        # Params
+        params = {
+            "objective": task,
+            "metric": "rmse" if task == "regression" else "binary_logloss",
+            "boosting_type": "gbdt",
+            "num_leaves": 15, # Reduced from 31 for small dataset
+            "learning_rate": 0.05,
+            "feature_fraction": 0.8,
+            "bagging_fraction": 0.8,
+            "bagging_freq": 5,
+            "min_child_samples": 10, # Reduced from default 20
+            "verbosity": -1 # Suppress warnings
+        }
+        
+        # Train
+        self.model = lgb.train(
+            params,
+            train_data,
+            num_boost_round=1000,
+            valid_sets=[train_data, val_data],
+            callbacks=[
+                lgb.early_stopping(stopping_rounds=50),
+                lgb.log_evaluation(100)
+            ]
+        )
+        
+        self.selected_features = feature_names # Changed from self.features to self.selected_features to match class attribute
+        
+        if save_model:
+            print(f"Model trained. Saving to {self.model_path}") # Corrected syntax
+            self.save_model()
 
     def save_model(self):
         """Save the trained model."""

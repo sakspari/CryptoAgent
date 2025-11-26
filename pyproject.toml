@@ -23,6 +23,7 @@ dependencies = [
     "google-generativeai",
     "google-genai",
     "ddgs>=9.9.1",
+    "feedparser",
 ]
 
 [tool.uv]
