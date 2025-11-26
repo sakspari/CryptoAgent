@@ -1,0 +1,32 @@
+[project]
+name = "crypto-agent"
+version = "0.1.0"
+description = "AI-Powered Crypto Intelligence Agent"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "agno",
+    "yfinance",
+    "pandas",
+    "numpy",
+    "matplotlib",
+    "ta",
+    "scikit-learn",
+    "lightgbm",
+    "shap",
+    "duckduckgo-search",
+    "python-telegram-bot",
+    "python-dotenv",
+    "schedule",
+    "pytz",
+    "requests",
+    "google-generativeai",
+    "google-genai",
+    "ddgs>=9.9.1",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "ipykernel"
+]

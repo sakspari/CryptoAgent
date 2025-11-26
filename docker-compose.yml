@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  crypto-agent:
+    build: .
+    container_name: crypto-agent
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Jakarta
+      - PORT=${PORT:-8080}
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    # Default runs scheduler. Override to run one-off:
+    # command: python src/main.py
